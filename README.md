@@ -1,0 +1,2 @@
+# NetGauge-Speed-Test
+A professional-grade internet speed test tool with real-time visualization and hardware-inspired design.

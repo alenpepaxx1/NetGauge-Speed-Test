@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --bg-color: #E6E6E6; /* Light surround */
+  --card-bg: #151619; /* Dark matte widget */
+  --text-primary: #FFFFFF;
+  --text-secondary: #8E9299;
+  --accent-color: #00FF9D; /* LCD green */
+  --accent-dim: rgba(0, 255, 157, 0.1);
+  --danger-color: #FF4444;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: #1a1a1a;
+  background-image: radial-gradient(#d1d1d1 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.hardware-card {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  box-shadow: 
+    0 20px 40px rgba(0,0,0,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    0 0 0 1px #0a0a0c;
+  border-radius: 16px;
+}
+
+.hardware-screen {
+  background-color: #0a0b0e;
+  box-shadow: inset 0 4px 20px rgba(0,0,0,0.5);
+  border: 2px solid #222;
+  border-radius: 8px;
+}
+
+.mono-font {
+  font-family: var(--font-mono);
+}
+
+/* Custom scrollbar for hardware feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #151619; 
+}
+::-webkit-scrollbar-thumb {
+  background: #333; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #444; 
+}

@@ -1,39 +1,56 @@
-# NetGauge-Speed-Test
-A professional-grade internet speed test tool with real-time visualization and hardware-inspired design.
+# Global Speed Test
 
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://i.ibb.co/b5jh0GtS/alen.png" />
-</div>
+A sleek, real-time internet speed and latency testing application. It allows you to measure your download speed, upload speed, ping, and jitter against geographically distributed global nodes using real HTTP requests.
 
+## Features
 
-## local Run
+- **Real-time Metrics**: Measures authentic Download, Upload, Ping, and Jitter.
+- **Multi-Country Nodes**: Test your connection against real, globally distributed endpoints (e.g., US, Europe, Asia, South America, Australia).
+- **Ping All**: Instantly check your latency across all global nodes simultaneously to find the best server.
+- **Beautiful UI**: A highly responsive, dark-mode terminal-inspired user interface featuring live streaming charts and dynamic network detection.
+- **Authentic Data**: No simulated or artificially padded numbers. The application executes real network requests to provide the most accurate readings possible.
 
-**Prerequisites:**  Node.js
+## Installation
 
+This application is built with Next.js and requires Node.js.
 
-1. Install dependencies:
-   `npm install`
-2. Run the app:
-   `npm run dev`
+1. **Clone the repository** (if applicable):
+   ```bash
+   git clone <repository_url>
+   cd <repository_name>
+   ```
 
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
+3. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
 
-## NETGAUGE – Internet Speed Test Tool
+4. **Open the app**:
+   Open your browser and navigate to `http://localhost:3000`.
 
-NETGAUGE is a Node.js-based diagnostic instrument for testing and monitoring internet performance.  
-It provides real-time data on download/upload speeds, latency, jitter, and signal strength, with a modern UI designed for clarity and precision.  
+## Usage
 
-### Features
-- Measure data rate (download & upload)
-- Track latency and jitter
-- Monitor uplink signal strength
-- Node selection for regional testing
-- Reset and initiate test sequences
-- Visual history of speed and performance
+1. **Select a Server**: By default, a server is selected for you. You can change this by clicking the "CHANGE" button in the Node section on the dashboard.
+2. **Compare Latencies**: Inside the server dropdown, you can hover over individual servers to ping them or click **Ping All** to see real-time latency (in milliseconds) to every global node.
+3. **Run the Test**: Click the large **"INITIALIZE TEST"** button. The app will sequence through:
+   - **Ping Test**: Measuring latency and jitter.
+   - **Download Test**: Measuring inbound bandwidth.
+   - **Upload Test**: Measuring outbound bandwidth.
+4. **View Results**: A live chart will display the network stability during the test, and final metrics will be displayed prominently.
 
-Version: MOD-X // v2.0.5  
+## Architecture
 
----
+- **Frontend Framework**: Next.js 15 (App Router) / React
+- **Styling**: Tailwind CSS
+- **Animations**: `motion/react` (Framer Motion)
+- **Icons**: Lucide React
+- **Charts**: Recharts
 
-### Author
-Developed by **Alen Pepa**
+## Author
+
+**Built by Alen Pepa**

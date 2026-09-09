@@ -8,12 +8,14 @@ import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 're
 type TestStatus = 'idle' | 'ping' | 'download' | 'upload' | 'complete';
 
 const SERVERS = [
-  { id: 'us-west', name: 'US_WEST_01', location: 'San Francisco, CA', status: 'online', load: 34 },
-  { id: 'us-east', name: 'US_EAST_01', location: 'New York, NY', status: 'online', load: 62 },
-  { id: 'eu-central', name: 'EU_CENTRAL_01', location: 'Frankfurt, DE', status: 'online', load: 89 },
-  { id: 'eu-west', name: 'EU_WEST_01', location: 'London, UK', status: 'online', load: 45 },
-  { id: 'ap-northeast', name: 'AP_NORTHEAST_01', location: 'Tokyo, JP', status: 'maintenance', load: 0 },
-  { id: 'ap-southeast', name: 'AP_SOUTHEAST_01', location: 'Singapore, SG', status: 'online', load: 71 },
+  { id: 'eu-west', name: 'EU_WEST_01', location: 'London, UK', status: 'online', load: 45, url: 'https://dynamodb.eu-west-2.amazonaws.com' },
+  { id: 'eu-central', name: 'EU_CENTRAL_01', location: 'Frankfurt, DE', status: 'online', load: 89, url: 'https://dynamodb.eu-central-1.amazonaws.com' },
+  { id: 'us-east', name: 'US_EAST_01', location: 'New York, NY', status: 'online', load: 62, url: 'https://dynamodb.us-east-1.amazonaws.com' },
+  { id: 'us-west', name: 'US_WEST_01', location: 'San Francisco, CA', status: 'online', load: 34, url: 'https://dynamodb.us-west-1.amazonaws.com' },
+  { id: 'sa-east', name: 'SA_EAST_01', location: 'São Paulo, BR', status: 'online', load: 55, url: 'https://dynamodb.sa-east-1.amazonaws.com' },
+  { id: 'ap-northeast', name: 'AP_NORTHEAST_01', location: 'Tokyo, JP', status: 'online', load: 42, url: 'https://dynamodb.ap-northeast-1.amazonaws.com' },
+  { id: 'ap-southeast', name: 'AP_SOUTHEAST_01', location: 'Singapore, SG', status: 'online', load: 71, url: 'https://dynamodb.ap-southeast-1.amazonaws.com' },
+  { id: 'oc-sydney', name: 'OC_SYDNEY_01', location: 'Sydney, AU', status: 'online', load: 28, url: 'https://dynamodb.ap-southeast-2.amazonaws.com' },
 ];
 
 // --- Integrity Protection Hook ---
@@ -88,22 +90,40 @@ export default function SpeedTestPage() {
   const [networkType, setNetworkType] = useState<string>('DETECTING...');
   const [selectedServer, setSelectedServer] = useState(SERVERS[0]);
   const [isServerDropdownOpen, setIsServerDropdownOpen] = useState(false);
-  const [serverLatencies, setServerLatencies] = useState<Record<string, number | 'loading'>>({});
+  const [serverLatencies, setServerLatencies] = useState<Record<string, number | string>>({});
   
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
   const isCompromised = useIntegrityCheck();
 
-  const handleServerHover = (serverId: string) => {
-    if (serverLatencies[serverId]) return;
+  const handleServerHover = async (serverId: string, force: boolean = false) => {
+    if (serverLatencies[serverId] && serverLatencies[serverId] !== 'loading' && !force) return;
     
     setServerLatencies(prev => ({ ...prev, [serverId]: 'loading' }));
     
-    setTimeout(() => {
-      const basePing = serverId.includes('us-west') ? 15 :
-                       serverId.includes('us-east') ? 65 :
-                       serverId.includes('eu') ? 130 : 185;
-      const jitter = Math.floor(Math.random() * 15);
-      setServerLatencies(prev => ({ ...prev, [serverId]: basePing + jitter }));
-    }, 400 + Math.random() * 400);
+    const server = SERVERS.find(s => s.id === serverId);
+    if (!server || !server.url) {
+      setServerLatencies(prev => ({ ...prev, [serverId]: 'N/A' }));
+      return;
+    }
+
+    try {
+      const start = performance.now();
+      await fetch(server.url, { mode: 'no-cors', cache: 'no-store' });
+      const duration = Math.round(performance.now() - start);
+      setServerLatencies(prev => ({ ...prev, [serverId]: duration }));
+    } catch (e) {
+      setServerLatencies(prev => ({ ...prev, [serverId]: 'ERR' }));
+    }
+  };
+
+  const pingAllServers = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    SERVERS.forEach(server => {
+      if (server.status === 'online') {
+        handleServerHover(server.id, true);
+      }
+    });
   };
 
   useEffect(() => {
@@ -144,40 +164,37 @@ export default function SpeedTestPage() {
     }
   }, []);
 
-  // Play a subtle satisfying sound when the test completes
-  useEffect(() => {
-    if (status === 'complete') {
-      try {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
+  const playCompletionSound = () => {
+    try {
+      if (!audioCtxRef.current) return;
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
 
-        const playNote = (freq: number, startTime: number, duration: number) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          
-          osc.type = 'sine';
-          osc.frequency.value = freq;
-          
-          gain.gain.setValueAtTime(0, startTime);
-          gain.gain.linearRampToValueAtTime(0.15, startTime + 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-          
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          
-          osc.start(startTime);
-          osc.stop(startTime + duration);
-        };
+      const playNote = (freq: number, startTime: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.15, startTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
 
-        const now = ctx.currentTime;
-        playNote(523.25, now, 0.6); // C5
-        playNote(659.25, now + 0.15, 0.8); // E5
-      } catch (e) {
-        console.error("Audio playback failed", e);
-      }
+      const now = ctx.currentTime;
+      playNote(523.25, now, 0.6); // C5
+      playNote(659.25, now + 0.15, 0.8); // E5
+    } catch (e) {
+      console.error("Audio playback failed", e);
     }
-  }, [status]);
+  };
   
   // Refs for cancellation and data tracking
   const abortController = useRef<AbortController | null>(null);
@@ -211,9 +228,10 @@ export default function SpeedTestPage() {
       if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
       const start = performance.now();
       try {
-        await fetch(`/api/ping?t=${Date.now()}`, { signal });
+        const serverUrl = selectedServer.url || `/api/ping?t=${Date.now()}`;
+        await fetch(serverUrl, { mode: selectedServer.url ? 'no-cors' : 'cors', cache: 'no-store', signal });
         const end = performance.now();
-        const duration = end - start;
+        const duration = Math.round(end - start);
         pings.push(duration);
         setPingData(prev => [...prev, { index: i, ping: duration }]);
         setProgress((i + 1) / 10 * 100);
@@ -355,6 +373,17 @@ export default function SpeedTestPage() {
     }
     if (status !== 'idle' && status !== 'complete') return;
     
+    // Initialize AudioContext on user interaction to bypass autoplay restrictions
+    if (!audioCtxRef.current) {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContext) {
+        audioCtxRef.current = new AudioContext();
+      }
+    }
+    if (audioCtxRef.current?.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    
     reset();
     
     const abort = new AbortController();
@@ -372,6 +401,7 @@ export default function SpeedTestPage() {
       const testEndTime = performance.now();
       setTotalDuration((testEndTime - testStartTime) / 1000);
       setStatus('complete');
+      playCompletionSound();
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') {
         console.log("Test aborted");
@@ -531,7 +561,15 @@ export default function SpeedTestPage() {
                       exit={{ opacity: 0, y: -10 }}
                       className="absolute top-full right-0 mt-2 w-64 bg-[#1a1c23] border border-[#2a2d35] rounded-xl shadow-2xl z-50 overflow-hidden"
                     >
-                      <div className="p-2 text-[10px] font-mono text-[#8E9299] uppercase border-b border-[#2a2d35]">Select Test Server</div>
+                      <div className="p-2 text-[10px] font-mono text-[#8E9299] uppercase border-b border-[#2a2d35] flex items-center justify-between">
+                        <span>Select Test Server</span>
+                        <button 
+                          onClick={pingAllServers}
+                          className="text-[#00FF9D] hover:text-white transition-colors px-2 py-0.5 rounded bg-[#00FF9D]/10 hover:bg-[#00FF9D]/20"
+                        >
+                          Ping All
+                        </button>
+                      </div>
                       <div className="max-h-60 overflow-y-auto custom-scrollbar">
                         {SERVERS.map(server => (
                           <button
@@ -564,11 +602,14 @@ export default function SpeedTestPage() {
                                 {serverLatencies[server.id] && server.status === 'online' && (
                                   <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
                                     serverLatencies[server.id] === 'loading' ? 'text-[#8E9299] bg-[#222]' :
+                                    typeof serverLatencies[server.id] === 'string' ? 'text-[#FF4444] bg-[#FF4444]/10' :
                                     (serverLatencies[server.id] as number) < 50 ? 'text-[#00FF9D] bg-[#00FF9D]/10' :
                                     (serverLatencies[server.id] as number) < 150 ? 'text-[#FFB000] bg-[#FFB000]/10' :
                                     'text-[#FF4444] bg-[#FF4444]/10'
                                   }`}>
-                                    {serverLatencies[server.id] === 'loading' ? '...' : `${serverLatencies[server.id]}ms`}
+                                    {serverLatencies[server.id] === 'loading' ? '...' : 
+                                     typeof serverLatencies[server.id] === 'string' ? serverLatencies[server.id] : 
+                                     `${serverLatencies[server.id]}ms`}
                                   </span>
                                 )}
                               </div>

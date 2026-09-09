@@ -17,7 +17,7 @@ export default function SpeedChart({ data, color }: SpeedChartProps) {
           <Tooltip 
             contentStyle={{ backgroundColor: '#151619', border: '1px solid #333', color: '#fff' }}
             itemStyle={{ color: color }}
-            formatter={(value: number | string | Array<number | string> | undefined) => {
+            formatter={(value: any) => {
               if (typeof value === 'number') {
                 return [`${value.toFixed(2)} Mbps`, 'Speed'];
               }
